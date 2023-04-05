@@ -2,7 +2,7 @@
 
 **Database Name: otrsphp**
 
-
+**Developed by Adelabu Oluwatoyin Simbiat**
 
 **Recommended PHP Version 7**
 
@@ -19,6 +19,4 @@ Password: Password@123
 
 Email   : demoaccount@mail.com
 Password: password
-
-OR sign up with your own details!!
 

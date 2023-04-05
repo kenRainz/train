@@ -1,429 +1,94 @@
-﻿<!DOCTYPE html>
-<?php
-include 'constants.php';
-?>
+<?php    
+/*
+ * PHP QR Code encoder
+ *
+ * Exemplatory usage
+ *
+ * PHP QR Code is distributed under LGPL 3
+ * Copyright (C) 2010 Dominik Dzienia <deltalab at poczta dot fm>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+    
+    echo "<h1>PHP QR Code</h1><hr/>";
+    
+    //set it to writable location, a place for temp generated PNG files
+    $PNG_TEMP_DIR = dirname(__FILE__).DIRECTORY_SEPARATOR.'temp'.DIRECTORY_SEPARATOR;
+    
+    //html PNG location prefix
+    $PNG_WEB_DIR = 'temp/';
 
-<head>
+    include "qrlib.php";    
+    
+    //ofcourse we need rights to create temp dir
+    if (!file_exists($PNG_TEMP_DIR))
+        mkdir($PNG_TEMP_DIR);
+    
+    
+    $filename = $PNG_TEMP_DIR.'test.png';
+    
+    //processing form input
+    //remember to sanitize user input in real-life solution !!!
+    $errorCorrectionLevel = 'L';
+    if (isset($_REQUEST['level']) && in_array($_REQUEST['level'], array('L','M','Q','H')))
+        $errorCorrectionLevel = $_REQUEST['level'];    
 
-    <meta charset="utf-8">
-
-    <meta name="viewport" content="width=devidev-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title><?php echo @$title; ?></title>
+    $matrixPointSize = 4;
+    if (isset($_REQUEST['size']))
+        $matrixPointSize = min(max((int)$_REQUEST['size'], 1), 10);
 
 
-    <!-- [ FONT-AWESOME ICON ] 
+    if (isset($_REQUEST['data'])) { 
+    
+        //it's very important!
+        if (trim($_REQUEST['data']) == '')
+            die('data cannot be empty! <a href="?">back</a>');
+            
+        // user data
+        $filename = $PNG_TEMP_DIR.'test'.md5($_REQUEST['data'].'|'.$errorCorrectionLevel.'|'.$matrixPointSize).'.png';
+        QRcode::png($_REQUEST['data'], $filename, $errorCorrectionLevel, $matrixPointSize, 2);    
         
-=========================================================================================================================-->
-
-    <link rel="stylesheet" type="text/css" href="library/font-awesome-4.3.0/css/font-awesome.min.css">
-
-
-    <!-- [ PLUGIN STYLESHEET ]
+    } else {    
+    
+        //default data
+        echo 'You can provide data in GET parameter: <a href="?data=like_that">like that</a><hr/>';    
+        QRcode::png('PHP QR Code :)', $filename, $errorCorrectionLevel, $matrixPointSize, 2);    
         
-=========================================================================================================================-->
-
-    <link rel="shortcut icon" type="image/x-icon" href="images/icon.png">
-
-    <link rel="stylesheet" type="text/css" href="css/animate.css">
-
-    <link rel="stylesheet" type="text/css" href="css/owl.carousel.css">
-
-    <link rel="stylesheet" type="text/css" href="css/owl.theme.css">
-
-    <link rel="stylesheet" type="text/css" href="css/magnific-popup.css">
-
-    <!-- [ Boot STYLESHEET ]
+    }    
         
-=========================================================================================================================-->
-
-    <link rel="stylesheet" type="text/css" href="library/bootstrap/css/bootstrap-theme.min.css">
-
-    <link rel="stylesheet" type="text/css" href="library/bootstrap/css/bootstrap.css">
-
-    <!-- [ DEFAULT STYLESHEET ] 
+    //display generated file
+    echo '<img src="'.$PNG_WEB_DIR.basename($filename).'" /><hr/>';  
+    
+    //config form
+    echo '<form action="index.php" method="post">
+        Data:&nbsp;<input name="data" value="'.(isset($_REQUEST['data'])?htmlspecialchars($_REQUEST['data']):'PHP QR Code :)').'" />&nbsp;
+        ECC:&nbsp;<select name="level">
+            <option value="L"'.(($errorCorrectionLevel=='L')?' selected':'').'>L - smallest</option>
+            <option value="M"'.(($errorCorrectionLevel=='M')?' selected':'').'>M</option>
+            <option value="Q"'.(($errorCorrectionLevel=='Q')?' selected':'').'>Q</option>
+            <option value="H"'.(($errorCorrectionLevel=='H')?' selected':'').'>H - best</option>
+        </select>&nbsp;
+        Size:&nbsp;<select name="size">';
         
-=========================================================================================================================-->
-
-    <link rel="stylesheet" type="text/css" href="css/style.css">
-
-    <link rel="stylesheet" type="text/css" href="css/responsive.css">
-
-    <link rel="stylesheet" type="text/css" href="css/color/themecolor.css">
-
-
-</head>
-
-<body>
-
-    <!-- [ LOADERs ]
-
-================================================================================================================================-->
-
-    <div class="preloader">
-
-        <div class="loader theme_background_color">
-
-            <span></span>
-
-
-        </div>
-    </div>
-    <!-- [ /PRELOADER ]
-
-=============================================================================================================================-->
-
-    <!-- [WRAPPER ]
-
-=============================================================================================================================-->
-
-    <div class="wrapper">
-
-        <!-- [NAV]
- 
-============================================================================================================================-->
-
-        <!-- Navigation
-    ==========================================-->
-
-        <nav class=" nim-menu navbar navbar-default navbar-fixed-top">
-
-            <div class="container">
-
-                <!-- Brand and toggle get grouped for better mobile display -->
-
-                <div class="navbar-header">
-
-                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
-                        data-target="#bs-example-navbar-collapse-1">
-
-                        <span class="sr-only">Toggle navigation</span>
-
-                        <span class="icon-bar"></span>
-
-                        <span class="icon-bar"></span>
-
-                        <span class="icon-bar"></span>
-
-                    </button>
-
-                    <a class="navbar-brand" href="index.php"><?php echo $title[0]; ?><span class="themecolor">
-                            <?php echo $title[1]; ?></span><?php for ($i = 2; $i < strlen($title); $i++) echo $title[$i]; ?></a>
-
-                </div>
-
-
-                <!-- Collect the nav links, forms, and other content for toggling -->
-
-                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-
-                    <ul class="nav navbar-nav navbar-right">
-
-                        <li><a href="#home" class="page-scroll">
-                                <h3>Home</h3>
-                            </a></li>
-
-                        <li><a href="#two" class="page-scroll">
-                                <h3>About</h3>
-                            </a></li>
-
-                        <li><a href="library/sample.pdf" class="page-scroll">
-                                <h3>Map</h3>
-                            </a></li>
-
-                        <li><a href="pro/signin.php" class="page-scroll">
-                                <h3>Passenger Portal</h3>
-                            </a></li>
-
-                        <li><a href="pro/adminsignin.php" class="page-scroll">
-                                <h3>Admin</h3>
-                            </a></li>
-                    </ul>
-
-                </div>
-                <!-- /.navbar-collapse -->
-
-            </div><!-- /.container-fluid -->
-
-        </nav>
-
-
-
-        <!-- [/NAV]
- 
-============================================================================================================================-->
-
-
-        <!-- [/MAIN-HEADING]
- 
-============================================================================================================================-->
-
-        <section class="main-heading" id="home">
-
-            <div class="overlay">
-
-                <div class="container">
-
-                    <div class="row">
-
-                        <div class="main-heading-content col-md-12 col-sm-12 text-center">
-
-                            <h1 class="main-heading-title"><span class="main-element themecolor"
-                                    data-elements=" Online Ticket, Online Ticket, Online Ticket"></span></h1>
-
-                            <h1 class="main-heading-title"><span class="main-element themecolor"
-                                    data-elements=" Reservation System, Reservation System, Reservation System"></span>
-                            </h1>
-
-                            <p class="main-heading-text">WELCOME TO,<br />E - TICKETING FOR RAILWAYS</p>
-
-                            <div class="btn-bar">
-
-                                <a href="pro/signin.php" class="btn btn-custom theme_background_color">Make Reservations Now</a>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-        </section>
-
-        <section class="main-heading" id="home">
-
-            <div class="overlay">
-
-                <div class="container">
-
-                    <div class="row">
-
-                        <div class="main-heading-content col-md-12 col-sm-12 text-center">
-
-                            <h1 class="main-heading-title">XYZ Railway Co. Contact List</h1>
-
-                            <p class="main-heading-text">The XYZ Railway Corporation is 112 years old and it runs a
-                                unilaterally designed track system of 1067mm cape gauge. Only 30km of its track
-                                distribution is in double track and that is within Lagos area.
-                                <br />The XYZ railway narrow gauge network is approximately 3,500 km long and is
-                                currently being extended by a narrow gauge line between ABC and the BCA - Port
-                                Harcourt line and a 275 km long standard gauge line between Ikakpe – Ajaokuta – Warri.
-                            </p>
-
-                            <div class="btn-bar">
-
-                             <!--   <a href="system/" class="btn btn-custom theme_background_color">Get Started</a>
-
-                                <a href="system/admin" class="btn btn-custom-outline">Admin</a> -->
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-        </section>
-
-
-        <!-- [/MAIN-HEADING]
- 
-============================================================================================================================-->
-
-
-
-        <!-- [ABOUT US]
- 
-============================================================================================================================-->
-
-        <section class="aboutus white-background black" id="two">
-
-            <div class="container">
-
-                <div class="row">
-
-                    <div class="col-md-12 text-center black">
-
-                        <h3 class="title">ABOUT <span class="themecolor">US</span></h3>
-
-                        <!--p class="a-slog">Developed By <?php echo $developer_name; ?> (<?php echo $developer_matric; ?>)
-                            and Supervised By <?php echo $supervisor_name; ?></p-->
-
-                    </div>
-
-                </div>
-
-                <div class="gap">
-
-
-                </div>
-
-
-                <div class="row about-box">
-
-                    <div class="col-sm-4 text-center">
-
-                        <div class="margin-bottom">
-
-                            <i class="fa fa-newspaper-o"></i>
-
-                            <h4>Get Train Tickets from the comfort of your home</h4>
-
-                            <p class="black">Book train tickets from anywhere using the robust ticketing platform
-                                exclusively built to provide the passengers with pleasant ticketing experience. </p>
-
-                        </div> <!-- / margin -->
-
-                    </div> <!-- /col -->
-
-                    <div class="col-sm-4 about-line text-center">
-
-                        <div class="margin-bottom">
-
-                            <i class="fa fa-diamond"></i>
-
-                            <h4>Train & Ticketing related information at your fingertips</h4>
-
-                            <p class="black">Checkout available seats, route information, fare information on real time
-                                basis with Esheba Platform.</p>
-
-                        </div> <!-- / margin -->
-
-                    </div><!-- /col -->
-
-                    <div class="col-sm-4 text-center">
-
-                        <div class="margin-bottom">
-
-                            <i class="fa fa-dollar"></i>
-
-                            <h4>Pay Securely</h4>
-
-                            <p class="black">Online payment. (NO REFUND!)</p>
-
-                        </div> <!-- / margin -->
-
-                    </div><!-- /col -->
-
-                </div> <!-- /row -->
-
-
-
-
-
-            </div>
-        </section>
-
-
-
-        <footer class="site-footer section-spacing text-center " id="eight">
-
-
-            <div class="container">
-
-                <div class="row">
-
-                    <div class="col-md-4">
-
-                        <p class="footer-links"><a href="#">Terms of Use</a> <a href="#">Privacy Policy</a></p>
-
-                    </div>
-
-                    
-
-                    <div class="col-md-4">
-
-                        <!--social-->
-
-                        <!-- 
-            <ul class="social">
-
-              <li><a href="https://twitter.com/" target="_blank"><i class="fa fa-twitter "></i></a></li>
-
-              <li><a href="https://www.facebook.com/" target="_blank"><i class="fa fa-facebook"></i></a></li>
-
-              <li><a href="https://www.youtube.com/" target="_blank"><i class="fa fa-youtube-play"></i></a></li>
-
-            </ul> -->
-
-
-                        <!--social end-->
-
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </footer>
-
-
-
-
-        <!-- [/FOOTER]
- 
-============================================================================================================================-->
-
-
-
-
-    </div>
-
-
-    <!-- [ /WRAPPER ]
-
-=============================================================================================================================-->
-
-
-    <!-- [ DEFAULT SCRIPT ] -->
-
-    <script src="library/modernizr.custom.97074.js"></script>
-
-    <script src="library/jquery-1.11.3.min.js"></script>
-
-    <script src="library/bootstrap/js/bootstrap.js"></script>
-
-    <script type="text/javascript" src="js/jquery.easing.1.3.js"></script>
-
-    <!-- [ PLUGIN SCRIPT ] -->
-
-    <script src="library/vegas/vegas.min.js"></script>
-
-    <script src="js/plugins.js"></script>
-
-    <!-- [ TYPING SCRIPT ] -->
-
-    <script src="js/typed.js"></script>
-
-    <!-- [ COUNT SCRIPT ] -->
-
-    <script src="js/fappear.js"></script>
-
-    <script src="js/jquery.countTo.js"></script>
-
-    <!-- [ SLIDER SCRIPT ] -->
-
-    <script src="js/owl.carousel.js"></script>
-
-    <script src="js/jquery.magnific-popup.min.js" type="text/javascript"></script>
-
-    <script type="text/javascript" src="js/SmoothScroll.js"></script>
-
-
-    <!-- [ COMMON SCRIPT ] -->
-    <script src="js/common.js"></script>
-
-</body>
-
-
-</html>
+    for($i=1;$i<=10;$i++)
+        echo '<option value="'.$i.'"'.(($matrixPointSize==$i)?' selected':'').'>'.$i.'</option>';
+        
+    echo '</select>&nbsp;
+        <input type="submit" value="GENERATE"></form><hr/>';
+        
+    // benchmark
+    QRtools::timeBenchmark();    
+
+    
